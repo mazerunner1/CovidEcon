@@ -1,0 +1,174 @@
+---
+title: "CovidEcon"
+author: "Richard Liu"
+date: "6/19/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Data Input
+
+```{r}
+swine = read.csv(file = "Data/swine.csv")
+ebola = read.csv(file = "Data/ebola.csv")
+covid = read.csv(file = "Data/covid.csv")
+gdp = read.csv(file = "Data/GDP.csv")
+gdp_grow = read.csv(file = "Data/GDPGrowth.csv")
+```
+
+Exploratory analysis
+```{r}
+#Mortality rate over time for swine flu
+swine_mr_ot = c()
+for(i in 1:length(swine$Country)){
+
+  if(swine$Country[i] == "Grand Total"){
+    
+    case = swine$Cases[i]
+    
+    death = swine$Deaths[i]
+    
+    swine_mr_ot = c(swine_mr_ot, death/case)
+  }
+}
+swine_mr_ot
+
+plot(1:length(swine_mr_ot), swine_mr_ot, xlab = "Time Period", ylab = "Mortality Rate", main = "Swine Flu")
+
+```
+
+Mortality rates over time for ebola virus for 5 affected nations.
+```{r}
+#Mortality rate over time for ebola virus
+ebola_mr_ot_g = c()
+ebola_mr_ot_n = c()
+ebola_mr_ot_sl = c()
+ebola_mr_ot_l = c()
+ebola_mr_ot_s = c()
+
+
+for(i in 1:length(ebola$Country)){
+  case = ebola$No..of.confirmed..probable.and.suspected.cases[i]
+  death = ebola$No..of.confirmed..probable.and.suspected.deaths[i]
+  if(ebola$Country[i] == "Guinea"){
+    ebola_mr_ot_g = c(ebola_mr_ot_g, death/case)
+
+  }
+  else if(ebola$Country[i] == "Nigeria"){
+    ebola_mr_ot_n = c(ebola_mr_ot_n, death/case)
+  }
+  else if(ebola$Country[i] == "Sierra Leone"){
+    ebola_mr_ot_sl = c(ebola_mr_ot_sl, death/case)
+
+  }
+  else if(ebola$Country[i] == "Liberia"){
+    ebola_mr_ot_l = c(ebola_mr_ot_g, death/case)
+
+  }
+  else{
+    ebola_mr_ot_s = c(ebola_mr_ot_g, death/case)
+  }
+}
+
+plot(1:length(ebola_mr_ot_g), ebola_mr_ot_g, xlab = "Time Period", ylab = "Mortality Rate", main = "Guinea")
+
+plot(1:length(ebola_mr_ot_n), ebola_mr_ot_n, xlab = "Time Period", ylab = "Mortality Rate",main = "Nigeria")
+
+plot(1:length(ebola_mr_ot_sl), ebola_mr_ot_sl, xlab = "Time Period", ylab = "Mortality Rate",main = "Sierra Leone")
+
+plot(1:length(ebola_mr_ot_l), ebola_mr_ot_l, xlab = "Time Period", ylab = "Mortality Rate",main = "Liberia")
+
+plot(1:length(ebola_mr_ot_s), ebola_mr_ot_s, xlab = "Time Period", ylab = "Mortality Rate",main = "Senegal")
+
+```
+
+Mortality Rates of Covid-19
+```{r}
+covid_mr_ot1 = c()
+covid_mr_ot2 = c()
+
+sum_c = 0
+sum_d = 0
+sum_r = 0
+
+for(i in 1:length(covid$Confirmed)){
+  case = covid$Confirmed[i]
+  death = covid$Deaths[i]
+  recov = covid$Recovered[i]
+  
+  sum_c = sum_c + case
+  sum_d = sum_d + death
+  sum_r = sum_r + recov
+  
+  if(covid$Country.Region[i] == "Yemen"){
+    #mortality rates including ongoing cases
+    covid_mr_ot1 = c(covid_mr_ot1, sum_d/sum_c)
+    
+    #Mortality rates including only resolved cases, ie recovered and dead
+    covid_mr_ot2 = c(covid_mr_ot2, sum_d/(sum_d+sum_r))
+    sum_c = 0
+    sum_d = 0
+    sum_r = 0
+  }
+  
+}
+plot(1:length(covid_mr_ot1), covid_mr_ot1, xlab = "Time Periods", ylab = "Mortality Rate", main = "Current Mortality Rate")
+
+plot(1:length(covid_mr_ot2), covid_mr_ot2, xlab = "Time Periods", ylab = "Mortality Rate", main = "Resolved Cases Mortality Rate")
+
+```
+
+Ebola Countries GDP
+```{r}
+gdp_g = gdp$Guinea
+gdp_sl = gdp$Sierra.Leone
+gdp_l = gdp$Liberia
+
+plot(gdp$Time,gdp_g, xlab = "Year", ylab = "GDP", main = "Guinea GDP")
+plot(gdp$Time,gdp_sl, xlab = "Year", ylab = "GDP", main = "Sierra Leone GDP")
+plot(gdp$Time,gdp_l, xlab = "Year", ylab = "GDP", main = "Liberia")
+
+cases = ebola$No..of.confirmed..probable.and.suspected.cases
+deaths = ebola$No..of.confirmed..probable.and.suspected.deaths
+mort_rate = deaths/cases
+
+#Guinea
+gdp_lm_g = lm(ebola$GDP.Guinea ~ cases + deaths + mort_rate)
+grow_lm_g = lm(ebola$GDP.Growth.Guinea ~ cases + deaths + mort_rate)
+summary(gdp_lm_g)
+summary(grow_lm_g)
+
+#Sierra Leone
+gdp_lm_sl = lm(ebola$GDP.Sierra.Leone ~ cases + deaths + mort_rate)
+grow_lm_sl = lm(ebola$GDP.Growth.Sierra.Leone ~ cases + deaths + mort_rate)
+summary(gdp_lm_sl)
+summary(grow_lm_sl)
+
+#Liberia
+gdp_lm_l = lm(ebola$GDP.Liberia ~ cases + deaths + mort_rate)
+grow_lm_l = lm(ebola$GDP.Growth.Liberia ~ cases + deaths + mort_rate)
+summary(gdp_lm_l)
+summary(grow_lm_l)
+
+predict(gdp_lm_g, data.frame(cases = 3000000, deaths = 210000, mort_rate = .07),interval = 'prediction')
+predict(grow_lm_g, data.frame(cases = 3000000, deaths = 210000, mort_rate = .07),interval = 'prediction')
+
+predict(gdp_lm_sl, data.frame(cases = 3000000, deaths = 210000, mort_rate = .07),interval = 'prediction')
+predict(grow_lm_sl, data.frame(cases = 3000000, deaths = 210000, mort_rate = .07),interval = 'prediction')
+
+predict(gdp_lm_l, data.frame(cases = 3000000, deaths = 210000, mort_rate = .07),interval = 'prediction')
+predict(grow_lm_l, data.frame(cases = 3000000, deaths = 210000, mort_rate = .07),interval = 'prediction')
+
+predict(gdp_lm_g, data.frame(cases = 1050000, deaths = 210000, mort_rate = .2),interval = 'prediction')
+predict(grow_lm_g, data.frame(cases = 1050000, deaths = 210000, mort_rate = .2),interval = 'prediction')
+
+predict(gdp_lm_sl, data.frame(cases = 1050000, deaths = 210000, mort_rate = .2),interval = 'prediction')
+predict(grow_lm_sl, data.frame(cases = 1050000, deaths = 210000, mort_rate = .2),interval = 'prediction')
+
+predict(gdp_lm_l, data.frame(cases = 1050000, deaths = 210000, mort_rate = .2),interval = 'prediction')
+predict(grow_lm_l, data.frame(cases = 1050000, deaths = 210000, mort_rate = .2),interval = 'prediction')
+```
+
